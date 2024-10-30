@@ -66,7 +66,7 @@ class ClickerGame(ctk.CTk):
         self._encoded_score = self.encode_score(self._score)  # Initialize _encoded_score
 
         # Countdown timer
-        self.timer_duration = 15  # Set the timer duration to 15 seconds
+        self.timer_duration = 60  # Set the timer duration to 15 seconds
         self.remaining_time = self.timer_duration  # Time left in the countdown
 
         # Cost for upgrades
@@ -211,7 +211,7 @@ class ClickerGame(ctk.CTk):
     def upgrade_timer(self):
         if self._score >= self.upgrade_cost and self.timer_duration > 5:
             self._score -= self.upgrade_cost  # Decrease score by current cost
-            self.timer_duration -= 1  # Reduce the timer duration by 1
+            self.timer_duration -= 2  # Reduce the timer duration by 1
             self._encoded_score = self.encode_score(self._score)  # Update the encoded score
             self.update_score_display()
 

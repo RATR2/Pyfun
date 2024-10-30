@@ -130,7 +130,7 @@ class ClickerGame(ctk.CTk):
 
     def fetch_leaderboard_data(self):
         try:
-            response = requests.get(LEADERBOARD_ENDPOINT, timeout=5, verify=False)
+            response = requests.get(LEADERBOARD_ENDPOINT, timeout=5, verify=False) #stupid github i swaer
             if response.status_code == 200:
                 leaderboard_data = response.json()
                 return "\n".join(

@@ -28,8 +28,8 @@ def get_remote_script_content():
     url = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/main/{FILE_PATH}"
     logging.info(f"Fetching from URL: {url}")
     try:
-        response = requests.get(url, verify=False)  # Added verify=False
-        response.raise_for_status()  # Raise an error for bad responses
+        response = requests.get(url, verify=False)
+        response.raise_for_status()
         return response.text
     except requests.exceptions.RequestException as e:
         logging.error(f"Failed to fetch the remote file: {e}")
@@ -65,6 +65,7 @@ class ClickerGame(ctk.CTk):
         self.title("Clicker Game")
         self.geometry("400x300")
         self.username = username
+        self.auth_key = None  # Store the auth key
         self._score = 0
         self._encoded_score = self.encode_score(self._score)
         self.timer_duration = 60
@@ -87,6 +88,9 @@ class ClickerGame(ctk.CTk):
         self.after(5000, self.anti_cheat_monitor)
         self.after(10000, self.send_score_to_server)
         self.start_countdown()
+
+        # Create user on the server and get the auth key
+        self.create_user()
 
     def encode_score(self, score):
         return base64.b64encode(str(score).encode()).decode()
@@ -114,15 +118,30 @@ class ClickerGame(ctk.CTk):
     def update_score_display(self):
         self.score_label.configure(text=f"Score: {self._score}")
 
+    def create_user(self):
+        """Create a new user and retrieve the auth key from the server."""
+        try:
+            data = {
+                'username': self.username,
+                'score': self._score
+            }
+            response = requests.post(LEADERBOARD_ENDPOINT, json=data, timeout=5, verify=False)
+            response.raise_for_status()  # Raise an error for bad responses
+            result = response.json()
+            self.auth_key = result.get('auth_key')  # Get the auth key from the server
+            logging.info(f"User created successfully with auth key: {self.auth_key}")
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error while creating user: {e}")
+
     def send_score_to_server(self):
         try:
             data = {
                 'username': self.username,
                 'score': self._score,
-                'encoded_score': self._encoded_score
+                'auth_key': self.auth_key  # Include the auth key
             }
-            response = requests.post(LEADERBOARD_ENDPOINT, json=data, timeout=5, verify=False)  # Added verify=False
-            response.raise_for_status()  # Raise an error for bad responses
+            response = requests.post(LEADERBOARD_ENDPOINT, json=data, timeout=5, verify=False)
+            response.raise_for_status()
             logging.info("Score updated successfully on the server.")
         except requests.exceptions.RequestException as e:
             logging.error(f"Error while sending score to the server: {e}")
@@ -135,8 +154,8 @@ class ClickerGame(ctk.CTk):
 
     def fetch_leaderboard_data(self):
         try:
-            response = requests.get(LEADERBOARD_ENDPOINT, timeout=5, verify=False)  # Added verify=False
-            response.raise_for_status()  # Raise an error for bad responses
+            response = requests.get(LEADERBOARD_ENDPOINT, timeout=5, verify=False)
+            response.raise_for_status()
             leaderboard_data = response.json()
             return "\n".join(
                 [f"{i + 1}. {entry['username']}: {entry['score']}" for i, entry in enumerate(leaderboard_data)]
@@ -189,8 +208,8 @@ class ClickerGame(ctk.CTk):
 
     def remove_user_from_server(self):
         try:
-            response = requests.delete(f"{LEADERBOARD_ENDPOINT}/{self.username}", timeout=5, verify=False)  # Added verify=False
-            response.raise_for_status()  # Raise an error for bad responses
+            response = requests.delete(f"{LEADERBOARD_ENDPOINT}/{self.username}", timeout=5, verify=False)
+            response.raise_for_status()
             logging.info(f"User {self.username} removed from the server.")
         except requests.exceptions.RequestException as e:
             logging.error(f"Error while removing user from the server: {e}")
@@ -207,33 +226,22 @@ def ask_for_username():
             if not is_username_valid(username):
                 logging.warning("Username is invalid.")
                 username_entry.delete(0, ctk.END)
-            elif check_username_exists(username):
-                logging.warning("Username already exists.")
-                username_entry.delete(0, ctk.END)
-            else:
-                username_window.destroy()
-                game_window = ClickerGame(username)
-                game_window.mainloop()
+                return
+            username_window.destroy()
+            app = ClickerGame(username)
+            app.mainloop()
+        else:
+            logging.warning("Username cannot be empty.")
 
-    username_label = ctk.CTkLabel(username_window, text="Enter your username:")
-    username_label.pack(pady=10)
     username_entry = ctk.CTkEntry(username_window)
-    username_entry.pack(pady=10)
+    username_entry.pack(pady=20)
     submit_button = ctk.CTkButton(username_window, text="Submit", command=submit_username)
     submit_button.pack(pady=10)
 
     username_window.mainloop()
 
 def is_username_valid(username):
-    return re.match(r'^[a-zA-Z0-9_]+$', username) is not None
-
-def check_username_exists(username):
-    try:
-        response = requests.get(f"{LEADERBOARD_ENDPOINT}/{username}", timeout=5, verify=False)  # Added verify=False
-        return response.status_code == 200
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error checking username existence: {e}")
-        return False
+    return len(username) > 0 and not any(banned_word in username for banned_word in BANNED_WORDS)
 
 if __name__ == "__main__":
     ask_for_username()

@@ -8,10 +8,9 @@ import threading
 import psutil
 import time
 import re
-from PVconfig import SERVER_IP, SERVER_PORT, LEADERBOARD_ENDPOINT, REPO_OWNER, REPO_NAME, FILE_PATH, BANNED_WORDS
+from PVconfig import SERVER_IP, SERVER_PORT, LEADERBOARD_ENDPOINT, REPO_OWNER, REPO_NAME, FILE_PATH, BANNED_WORDS, KNOWN_CHEAT_PROCESSES
 
 LOCAL_SCRIPT_PATH = os.path.abspath(__file__)
-KNOWN_CHEAT_PROCESSES = ["Cheat Engine", "WeMod"]
 
 def get_remote_script_content():
     """

@@ -21,7 +21,7 @@ BANNED_WORDS = {
     "nutter", "pigeon", "muff", "pisshead", "skank",
     "tosser", "twit", "wanker"
 }
-
+KNOWN_CHEAT_PROCESSES = ["Cheat Engine", "WeMod"]
 REPO_OWNER = "RATR2"
 REPO_NAME = "Pyfun"
 FILE_PATH = "pyfun.py"

@@ -7,7 +7,8 @@ import customtkinter as ctk
 import threading
 import psutil
 import time
-from PVconfig import SERVER_IP, SERVER_PORT, LEADERBOARD_ENDPOINT, REPO_OWNER, REPO_NAME, FILE_PATH #bruh i hate github
+import re
+from PVconfig import SERVER_IP, SERVER_PORT, LEADERBOARD_ENDPOINT, REPO_OWNER, REPO_NAME, FILE_PATH, BANNED_WORDS
 
 LOCAL_SCRIPT_PATH = os.path.abspath(__file__)
 KNOWN_CHEAT_PROCESSES = ["Cheat Engine", "WeMod"]
@@ -50,22 +51,21 @@ def update_script():
     else:
         print("Script is already up to date.")
 
-# Encodes and obfuscates score
-def encode_score(score):
-    return base64.b64encode(hashlib.sha256(str(score).encode()).digest()).decode()
-
 class ClickerGame(ctk.CTk):
-    def __init__(self):
+    def __init__(self, username):
         super().__init__()
 
         # GUI window properties
         self.title("Clicker Game")
         self.geometry("400x300")
 
+        # Store the username
+        self.username = username
+
         # Initial score and encoded score
         self._score = 0
         self._encoded_score = encode_score(self._score)
-        
+
         # Countdown timer
         self.timer_duration = 25  # Set the timer duration to 25 seconds
         self.remaining_time = self.timer_duration  # Time left in the countdown
@@ -86,6 +86,9 @@ class ClickerGame(ctk.CTk):
         # Start anti-cheat monitoring with after()
         self.after(5000, self.anti_cheat_monitor)  # Check every 5 seconds
         
+        # Start automatic score update
+        self.after(10000, self.send_score_to_server)  # Send score every 10 seconds
+
         # Start the countdown
         self.start_countdown()
 
@@ -106,35 +109,43 @@ class ClickerGame(ctk.CTk):
             self.click_button.configure(state="normal")  # Re-enable the button
 
     def increment_score(self):
-        # Increase the score and update obfuscated score
         self._score += 1
-        self._encoded_score = encode_score(self._score)
         self.update_score_display()
-        
-        # Restart the countdown after a successful click
         self.start_countdown()
 
     def update_score_display(self):
-        # Update score label in the UI
         self.score_label.configure(text=f"Score: {self._score}")
 
+    def send_score_to_server(self):
+        try:
+            data = {
+                'username': self.username,  # Send username along with the score
+                'score': self._score,
+                'encoded_score': self._encoded_score
+            }
+            response = requests.post(LEADERBOARD_ENDPOINT, json=data, timeout=5)
+            if response.status_code == 200:
+                print("Score updated successfully on the server.")
+            else:
+                print(f"Failed to update score: HTTP {response.status_code}")
+        except Exception as e:
+            print(f"Error while sending score to the server: {e}")
+
+        # Schedule the next score update
+        self.after(10000, self.send_score_to_server)  # Repeat every 10 seconds
+
     def show_leaderboard(self):
-        # Default message if leaderboard fetch fails
         leaderboard_text = "Leaderboard data not available."
-    
-        # Attempt to fetch leaderboard data
         leaderboard_text = self.fetch_leaderboard_data()
-    
-        # Display leaderboard in new window
         self.display_leaderboard_window(leaderboard_text)
 
     def fetch_leaderboard_data(self):
         try:
-            response = requests.get(LEADERBOARD_ENDPOINT, timeout=5, verify=False) #stupid github i swaer
+            response = requests.get(LEADERBOARD_ENDPOINT, timeout=5)
             if response.status_code == 200:
                 leaderboard_data = response.json()
                 return "\n".join(
-                    [f"{i+1}. {entry['name']}: {entry['score']}" for i, entry in enumerate(leaderboard_data)]
+                    [f"{i+1}. {entry['username']}: {entry['score']}" for i, entry in enumerate(leaderboard_data)]
                 )
             else:
                 print(f"Leaderboard fetch failed with status code: {response.status_code}")
@@ -143,44 +154,82 @@ class ClickerGame(ctk.CTk):
             print(f"Exception occurred while fetching leaderboard: {e}")  # Print the error message
             return f"Error: {str(e)}"
 
-    def display_leaderboard_window(self, leaderboard_text):
-        # Helper function to create a window to display leaderboard
-        leaderboard_window = ctk.CTkToplevel(self)
-        leaderboard_window.title("Leaderboard")
-        leaderboard_label = ctk.CTkLabel(leaderboard_window, text=leaderboard_text)
-        leaderboard_label.pack(pady=10, padx=10)
-
-        # Display leaderboard in new window
-        leaderboard_window = ctk.CTkToplevel(self)
-        leaderboard_window.title("Leaderboard")
-        leaderboard_label = ctk.CTkLabel(leaderboard_window, text=leaderboard_text)
-        leaderboard_label.pack(pady=10, padx=10)
-
     def anti_cheat_monitor(self):
-        # Background process that continuously checks for known cheat programs
         for process in psutil.process_iter(attrs=['name']):
             process_name = process.info['name']
             if any(cheat_tool.lower() in process_name.lower() for cheat_tool in KNOWN_CHEAT_PROCESSES):
-                self.show_cheat_detected_warning(process_name)
+                self.handle_cheat_detected(process_name)
                 return
 
         # Schedule the next anti-cheat check
         self.after(5000, self.anti_cheat_monitor)  # Repeat check every 5 seconds
 
-    def show_cheat_detected_warning(self, cheat_name):
-        # Notify the user that a cheat tool was detected
-        warning_window = ctk.CTkToplevel(self)
-        warning_window.title("Cheat Detected")
-        warning_label = ctk.CTkLabel(warning_window, text=f"Cheat Detected: {cheat_name}\nGame will close.")
-        warning_label.pack(pady=10, padx=10)
+    def handle_cheat_detected(self, cheat_name):
+        # Notify the user that a cheat tool was detected and display cooldown message
+        self.timer_label.configure(text="Cooldown: Cheats Detected")  # Update the timer label
+        self.click_button.configure(state="disabled")  # Disable the click button
         
-        # Exit game after warning
-        self.after(3000, self.destroy)
+        # Start a cooldown period
+        self.start_cooldown()
 
-if __name__ == "__main__":
-    update_script()  # Check for updates before starting the game
+    def start_cooldown(self):
+        self.remaining_time = 10  # Set cooldown duration (10 seconds for example)
+        self.update_timer()  # Start the cooldown timer
 
+def ask_for_username():
+    username_window = ctk.CTk()
+    username_window.title("Enter Username")
+    username_window.geometry("300x200")
+
+    def submit_username():
+        username = username_entry.get()
+        if username:
+            if not is_username_valid(username):
+                print("Username is invalid. Please use only allowed characters and avoid inappropriate words.")
+                username_entry.delete(0, ctk.END)  # Clear the entry field
+            elif check_username_exists(username):
+                print("Username already exists. Please choose a different one.")
+                username_entry.delete(0, ctk.END)  # Clear the entry field
+            else:
+                username_window.destroy()  # Close the username window
+                start_game(username)  # Start the game with the valid username
+
+    def is_username_valid(username):
+        # Check for inappropriate words
+        if any(banned_word in username.lower() for banned_word in BANNED_WORDS):
+            return False
+        
+        # Allow only alphanumeric characters and specified symbols
+        return bool(re.match(r"^[a-zA-Z0-9$%()_\-]*$", username))  # Modify the regex pattern as needed
+
+    def check_username_exists(username):
+        try:
+            response = requests.get(LEADERBOARD_ENDPOINT, timeout=5)
+            if response.status_code == 200:
+                leaderboard_data = response.json()
+                existing_usernames = [entry['username'] for entry in leaderboard_data]
+                return username in existing_usernames
+            else:
+                print(f"Failed to fetch leaderboard for username check: HTTP {response.status_code}")
+                return False
+        except Exception as e:
+            print(f"Error while checking username: {e}")
+            return False
+
+    username_label = ctk.CTkLabel(username_window, text="Enter Username:")
+    username_label.pack(pady=10)
+
+    username_entry = ctk.CTkEntry(username_window)
+    username_entry.pack(pady=10)
+
+    submit_button = ctk.CTkButton(username_window, text="Submit", command=submit_username)
+    submit_button.pack(pady=10)
+
+    username_window.mainloop()
+
+def start_game(username):
+    update_script()
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("blue")
-    app = ClickerGame()
+    app = ClickerGame(username)
     app.mainloop()

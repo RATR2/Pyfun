@@ -76,9 +76,8 @@ class ClickerGame(ctk.CTk):
         self.leaderboard_button = ctk.CTkButton(self, text="View Leaderboard", command=self.show_leaderboard)
         self.leaderboard_button.pack(pady=10)
 
-        # Start anti-cheat thread
-        self.anti_cheat_thread = threading.Thread(target=self.anti_cheat_monitor, daemon=True)
-        self.anti_cheat_thread.start()
+        # Start anti-cheat monitoring with after()
+        self.after(5000, self.anti_cheat_monitor)  # Check every 5 seconds
 
     def increment_score(self):
         # Increase the score and update obfuscated score
@@ -109,6 +108,27 @@ class ClickerGame(ctk.CTk):
         leaderboard_window.title("Leaderboard")
         leaderboard_label = ctk.CTkLabel(leaderboard_window, text=leaderboard_text)
         leaderboard_label.pack(pady=10, padx=10)
+
+    def anti_cheat_monitor(self):
+        # Background process that continuously checks for known cheat programs
+        for process in psutil.process_iter(attrs=['name']):
+            process_name = process.info['name']
+            if any(cheat_tool.lower() in process_name.lower() for cheat_tool in KNOWN_CHEAT_PROCESSES):
+                self.show_cheat_detected_warning(process_name)
+                return
+
+        # Schedule the next anti-cheat check
+        self.after(5000, self.anti_cheat_monitor)  # Repeat check every 5 seconds
+
+    def show_cheat_detected_warning(self, cheat_name):
+        # Notify the user that a cheat tool was detected
+        warning_window = ctk.CTkToplevel(self)
+        warning_window.title("Cheat Detected")
+        warning_label = ctk.CTkLabel(warning_window, text=f"Cheat Detected: {cheat_name}\nGame will close.")
+        warning_label.pack(pady=10, padx=10)
+        
+        # Exit game after warning
+        self.after(3000, self.destroy)
 
     def anti_cheat_monitor(self):
         # Background process that continuously checks for known cheat programs

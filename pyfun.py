@@ -65,6 +65,10 @@ class ClickerGame(ctk.CTk):
         # Initial score and encoded score
         self._score = 0
         self._encoded_score = encode_score(self._score)
+        
+        # Countdown timer
+        self.timer_duration = 25  # Set the timer duration to 25 seconds
+        self.remaining_time = self.timer_duration  # Time left in the countdown
 
         # UI elements
         self.score_label = ctk.CTkLabel(self, text="Score: 0", font=("Arial", 24))
@@ -73,17 +77,42 @@ class ClickerGame(ctk.CTk):
         self.click_button = ctk.CTkButton(self, text="Click Me!", command=self.increment_score)
         self.click_button.pack(pady=20)
 
+        self.timer_label = ctk.CTkLabel(self, text=f"Time Remaining: {self.remaining_time}s", font=("Arial", 14))
+        self.timer_label.pack(pady=10)
+
         self.leaderboard_button = ctk.CTkButton(self, text="View Leaderboard", command=self.show_leaderboard)
         self.leaderboard_button.pack(pady=10)
 
         # Start anti-cheat monitoring with after()
         self.after(5000, self.anti_cheat_monitor)  # Check every 5 seconds
+        
+        # Start the countdown
+        self.start_countdown()
+
+    def start_countdown(self):
+        # Disables the click button and starts the countdown
+        self.click_button.configure(state="disabled")
+        self.remaining_time = self.timer_duration
+        self.update_timer()
+
+    def update_timer(self):
+        # Updates the timer label and re-enables the button when time is up
+        if self.remaining_time > 0:
+            self.timer_label.configure(text=f"Time Remaining: {self.remaining_time}s")
+            self.remaining_time -= 1
+            self.after(1000, self.update_timer)  # Update timer every second
+        else:
+            self.timer_label.configure(text="You can click now!")
+            self.click_button.configure(state="normal")  # Re-enable the button
 
     def increment_score(self):
         # Increase the score and update obfuscated score
         self._score += 1
         self._encoded_score = encode_score(self._score)
         self.update_score_display()
+        
+        # Restart the countdown after a successful click
+        self.start_countdown()
 
     def update_score_display(self):
         # Update score label in the UI
@@ -129,7 +158,6 @@ class ClickerGame(ctk.CTk):
         
         # Exit game after warning
         self.after(3000, self.destroy)
-
 
 if __name__ == "__main__":
     update_script()  # Check for updates before starting the game

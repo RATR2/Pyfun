@@ -66,8 +66,11 @@ class ClickerGame(ctk.CTk):
         self._encoded_score = self.encode_score(self._score)  # Initialize _encoded_score
 
         # Countdown timer
-        self.timer_duration = 25  # Set the timer duration to 25 seconds
+        self.timer_duration = 15  # Set the timer duration to 15 seconds
         self.remaining_time = self.timer_duration  # Time left in the countdown
+
+        # Cost for upgrades
+        self.upgrade_cost = 5
 
         # UI elements
         self.score_label = ctk.CTkLabel(self, text="Score: 0", font=("Arial", 24))
@@ -82,9 +85,13 @@ class ClickerGame(ctk.CTk):
         self.leaderboard_button = ctk.CTkButton(self, text="View Leaderboard", command=self.show_leaderboard)
         self.leaderboard_button.pack(pady=10)
 
+        # Add Upgrade button
+        self.upgrade_button = ctk.CTkButton(self, text="Upgrade (Cost: 5)", command=self.upgrade_timer)
+        self.upgrade_button.pack(pady=10)
+
         # Start anti-cheat monitoring with after()
         self.after(5000, self.anti_cheat_monitor)  # Check every 5 seconds
-        
+
         # Start automatic score update
         self.after(10000, self.send_score_to_server)  # Send score every 10 seconds
 
@@ -200,6 +207,26 @@ class ClickerGame(ctk.CTk):
     def start_cooldown(self):
         self.remaining_time = 10  # Set cooldown duration (10 seconds for example)
         self.update_timer()  # Start the cooldown timer
+
+    def upgrade_timer(self):
+        if self._score >= self.upgrade_cost and self.timer_duration > 5:
+            self._score -= self.upgrade_cost  # Decrease score by current cost
+            self.timer_duration -= 1  # Reduce the timer duration by 1
+            self._encoded_score = self.encode_score(self._score)  # Update the encoded score
+            self.update_score_display()
+
+            # Increment the upgrade cost for the next upgrade
+            self.upgrade_cost += 10
+
+            # Update the button text to reflect the new cost
+            self.upgrade_button.configure(text=f"Upgrade (Cost: {self.upgrade_cost})")
+
+            # Check if the timer duration has reached 5
+            if self.timer_duration == 5:
+                self.upgrade_button.configure(text="Maxed", state="disabled")  # Disable the button and change its text
+
+        else:
+            print("Not enough score to upgrade or timer duration is maxed.")
 
 def ask_for_username():
     update_script()

@@ -176,6 +176,7 @@ class ClickerGame(ctk.CTk):
         self.update_timer()  # Start the cooldown timer
 
 def ask_for_username():
+    update_script()
     username_window = ctk.CTk()
     username_window.title("Enter Username")
     username_window.geometry("300x200")
@@ -227,7 +228,6 @@ def ask_for_username():
     username_window.mainloop()
 
 def start_game(username):
-    update_script()
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("blue")
     app = ClickerGame(username)

@@ -28,7 +28,7 @@ def get_remote_script_content():
     url = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/main/{FILE_PATH}"
     logging.info(f"Fetching from URL: {url}")
     try:
-        response = requests.get(url)
+        response = requests.get(url, verify=False)  # Added verify=False
         response.raise_for_status()  # Raise an error for bad responses
         return response.text
     except requests.exceptions.RequestException as e:
@@ -121,7 +121,7 @@ class ClickerGame(ctk.CTk):
                 'score': self._score,
                 'encoded_score': self._encoded_score
             }
-            response = requests.post(LEADERBOARD_ENDPOINT, json=data, timeout=5)
+            response = requests.post(LEADERBOARD_ENDPOINT, json=data, timeout=5, verify=False)  # Added verify=False
             response.raise_for_status()  # Raise an error for bad responses
             logging.info("Score updated successfully on the server.")
         except requests.exceptions.RequestException as e:
@@ -135,7 +135,7 @@ class ClickerGame(ctk.CTk):
 
     def fetch_leaderboard_data(self):
         try:
-            response = requests.get(LEADERBOARD_ENDPOINT, timeout=5)
+            response = requests.get(LEADERBOARD_ENDPOINT, timeout=5, verify=False)  # Added verify=False
             response.raise_for_status()  # Raise an error for bad responses
             leaderboard_data = response.json()
             return "\n".join(
@@ -189,7 +189,7 @@ class ClickerGame(ctk.CTk):
 
     def remove_user_from_server(self):
         try:
-            response = requests.delete(f"{LEADERBOARD_ENDPOINT}/{self.username}", timeout=5)
+            response = requests.delete(f"{LEADERBOARD_ENDPOINT}/{self.username}", timeout=5, verify=False)  # Added verify=False
             response.raise_for_status()  # Raise an error for bad responses
             logging.info(f"User {self.username} removed from the server.")
         except requests.exceptions.RequestException as e:
@@ -229,7 +229,7 @@ def is_username_valid(username):
 
 def check_username_exists(username):
     try:
-        response = requests.get(f"{LEADERBOARD_ENDPOINT}/{username}", timeout=5)
+        response = requests.get(f"{LEADERBOARD_ENDPOINT}/{username}", timeout=5, verify=False)  # Added verify=False
         return response.status_code == 200
     except requests.exceptions.RequestException as e:
         logging.error(f"Error checking username existence: {e}")

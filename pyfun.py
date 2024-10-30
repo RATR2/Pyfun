@@ -173,6 +173,11 @@ class ClickerGame(ctk.CTk):
         except Exception as e:
             print(f"Exception occurred while fetching leaderboard: {e}")  # Print the error message
             return f"Error: {str(e)}"
+    def display_leaderboard_window(self, leaderboard_text):
+        leaderboard_window = ctk.CTkToplevel(self)
+        leaderboard_window.title("Leaderboard")
+        leaderboard_label = ctk.CTkLabel(leaderboard_window, text=leaderboard_text)
+        leaderboard_label.pack(pady=10, padx=10)
 
     def anti_cheat_monitor(self):
         for process in psutil.process_iter(attrs=['name']):

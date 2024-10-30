@@ -127,7 +127,7 @@ class ClickerGame(ctk.CTk):
                 'score': self._score,
                 'encoded_score': self._encoded_score
             }
-            response = requests.post(LEADERBOARD_ENDPOINT, json=data, timeout=5, verify=False)
+            response = requests.post(LEADERBOARD_ENDPOINT, json=data, timeout=5, verify=False)#please be last change at least untill tmr
             if response.status_code == 200:
                 print("Score updated successfully on the server.")
             else:

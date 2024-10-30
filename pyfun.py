@@ -232,3 +232,5 @@ def start_game(username):
     ctk.set_default_color_theme("blue")
     app = ClickerGame(username)
     app.mainloop()
+if __name__ == "__main__":
+    ask_for_username()

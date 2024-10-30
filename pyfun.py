@@ -64,7 +64,6 @@ class ClickerGame(ctk.CTk):
 
         # Initial score and encoded score
         self._score = 0
-        self._encoded_score = encode_score(self._score)
 
         # Countdown timer
         self.timer_duration = 25  # Set the timer duration to 25 seconds

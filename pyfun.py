@@ -9,6 +9,7 @@ import psutil
 import time
 import signal
 import re
+import json
 import logging
 from PVconfig import (
     SERVER_IP, SERVER_PORT, LEADERBOARD_ENDPOINT, 
@@ -22,6 +23,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 LOCAL_SCRIPT_PATH = os.path.abspath(__file__)
 LAST_UPDATE_CHECK = time.time()
 UPDATE_CHECK_INTERVAL = 3600  # Check for updates every hour
+AUTH_KEY_FILE = "auth_keys.json"  # File to store usernames and auth keys
 
 def get_remote_script_content():
     """Fetch the latest version of the script from GitHub."""
@@ -60,13 +62,13 @@ def update_script():
         logging.info("Script is already up to date.")
 
 class ClickerGame(ctk.CTk):
-    def __init__(self, username):
+    def __init__(self, username, score=0, auth_key=None):
         super().__init__()
         self.title("Clicker Game")
         self.geometry("400x300")
         self.username = username
-        self.auth_key = None  # Store the auth key
-        self._score = 0
+        self.auth_key = auth_key  # Use provided auth key
+        self._score = score  # Use provided score
         self._encoded_score = self.encode_score(self._score)
         self.timer_duration = 60
         self.remaining_time = self.timer_duration
@@ -74,7 +76,7 @@ class ClickerGame(ctk.CTk):
         signal.signal(signal.SIGINT, self.handle_exit)
         signal.signal(signal.SIGTERM, self.handle_exit)
 
-        self.score_label = ctk.CTkLabel(self, text="Score: 0", font=("Arial", 24))
+        self.score_label = ctk.CTkLabel(self, text=f"Score: {self._score}", font=("Arial", 24))
         self.score_label.pack(pady=20)
         self.click_button = ctk.CTkButton(self, text="Click Me!", command=self.increment_score)
         self.click_button.pack(pady=20)
@@ -89,8 +91,11 @@ class ClickerGame(ctk.CTk):
         self.after(10000, self.send_score_to_server)
         self.start_countdown()
 
-        # Create user on the server and get the auth key
-        self.create_user()
+        # If no auth key, create user on the server
+        if self.auth_key is None:
+            self.create_user()
+        else:
+            logging.info("User logged in with existing auth key.")
 
     def encode_score(self, score):
         return base64.b64encode(str(score).encode()).decode()
@@ -130,8 +135,25 @@ class ClickerGame(ctk.CTk):
             result = response.json()
             self.auth_key = result.get('auth_key')  # Get the auth key from the server
             logging.info(f"User created successfully with auth key: {self.auth_key}")
+
+            # Save the auth key locally
+            self.save_auth_key(self.username, self.auth_key)
+
         except requests.exceptions.RequestException as e:
             logging.error(f"Error while creating user: {e}")
+
+    def save_auth_key(self, username, auth_key):
+        """Save the username and auth key to a local file."""
+        if os.path.exists(AUTH_KEY_FILE):
+            with open(AUTH_KEY_FILE, "r") as file:
+                auth_data = json.load(file)
+        else:
+            auth_data = {}
+
+        auth_data[username] = auth_key
+        
+        with open(AUTH_KEY_FILE, "w") as file:
+            json.dump(auth_data, file)
 
     def send_score_to_server(self):
         try:
@@ -191,45 +213,45 @@ class ClickerGame(ctk.CTk):
     def upgrade_timer(self):
         if self._score >= self.upgrade_cost and self.timer_duration > 5:
             self._score -= self.upgrade_cost
-            self.timer_duration -= 2
-            self._encoded_score = self.encode_score(self._score)
+            self.timer_duration -= 5
+            self.upgrade_cost *= 2  # Double the cost for the next upgrade
             self.update_score_display()
-            self.upgrade_cost += 5
-            self.upgrade_button.configure(text=f"Upgrade (Cost: {self.upgrade_cost})")
-
-            if self.timer_duration == 5:
-                self.upgrade_button.configure(text="Maxed", state="disabled")
-        else:
-            logging.info("Not enough score to upgrade or timer duration is maxed.")
+            logging.info(f"Timer upgraded! New timer duration: {self.timer_duration}")
 
     def handle_exit(self, signum, frame):
-        self.remove_user_from_server()
-        self.quit()
-
-    def remove_user_from_server(self):
-        try:
-            response = requests.delete(f"{LEADERBOARD_ENDPOINT}/{self.username}", timeout=5, verify=False)
-            response.raise_for_status()
-            logging.info(f"User {self.username} removed from the server.")
-        except requests.exceptions.RequestException as e:
-            logging.error(f"Error while removing user from the server: {e}")
+        logging.info("Application exiting.")
+        self.destroy()
 
 def ask_for_username():
-    update_script()
+    """Prompt the user for their username."""
     username_window = ctk.CTk()
     username_window.title("Enter Username")
-    username_window.geometry("300x200")
 
     def submit_username():
         username = username_entry.get()
-        if username:
-            if not is_username_valid(username):
-                logging.warning("Username is invalid.")
-                username_entry.delete(0, ctk.END)
-                return
-            username_window.destroy()
-            app = ClickerGame(username)
-            app.mainloop()
+        if is_username_valid(username):
+            # Check if username exists on the server
+            existing_user_check = requests.get(f"{LEADERBOARD_ENDPOINT}/{username}", verify=False)
+            if existing_user_check.status_code == 200:
+                # Load the auth key from local storage
+                if os.path.exists(AUTH_KEY_FILE):
+                    with open(AUTH_KEY_FILE, "r") as file:
+                        auth_data = json.load(file)
+                    auth_key = auth_data.get(username)
+
+                    if auth_key:
+                        logging.info("Logging in with existing user.")
+                        app = ClickerGame(username, auth_key=auth_key)
+                        app.mainloop()
+                    else:
+                        logging.warning("Auth key not found locally for this user.")
+                        ctk.CTkMessageBox.showinfo("Info", "Auth key not found locally.")
+                else:
+                    logging.warning("Auth key file does not exist.")
+                    ctk.CTkMessageBox.showinfo("Info", "Auth key file does not exist.")
+            else:
+                logging.warning("Username does not exist on the server.")
+                ctk.CTkMessageBox.showinfo("Info", "This username already exists.")
         else:
             logging.warning("Username cannot be empty.")
 
@@ -244,4 +266,5 @@ def is_username_valid(username):
     return len(username) > 0 and not any(banned_word in username for banned_word in BANNED_WORDS)
 
 if __name__ == "__main__":
+    update_script()
     ask_for_username()

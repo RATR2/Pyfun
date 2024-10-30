@@ -12,7 +12,7 @@ from PVconfig import SERVER_IP, SERVER_PORT, LEADERBOARD_ENDPOINT
 # GitHub repository information for the updater
 REPO_OWNER = "RATR2"
 REPO_NAME = "Pyfun"
-FILE_PATH = "./"  # Path in the repo to the script file
+FILE_PATH = "pyfun.py"  # Path in the repo to the script file
 LOCAL_SCRIPT_PATH = os.path.abspath(__file__)
 # Anti-cheat configuration
 KNOWN_CHEAT_PROCESSES = ["Cheat Engine", "WeMod"]
@@ -24,7 +24,9 @@ def get_remote_script_content():
         str: Content of the remote file.
     """
     url = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/main/{FILE_PATH}"
+    print(f"Fetching from URL: {url}")  # Debug statement to check URL
     response = requests.get(url)
+    print(f"Response status code: {response.status_code}")  # Debug to see response code
     if response.status_code == 200:
         return response.text
     else:

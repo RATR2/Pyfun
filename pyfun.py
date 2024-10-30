@@ -130,25 +130,6 @@ class ClickerGame(ctk.CTk):
         # Exit game after warning
         self.after(3000, self.destroy)
 
-    def anti_cheat_monitor(self):
-        # Background process that continuously checks for known cheat programs
-        while True:
-            for process in psutil.process_iter(attrs=['name']):
-                process_name = process.info['name']
-                if any(cheat_tool.lower() in process_name.lower() for cheat_tool in KNOWN_CHEAT_PROCESSES):
-                    self.show_cheat_detected_warning(process_name)
-                    return
-            time.sleep(5)  # Check every 5 seconds
-
-    def show_cheat_detected_warning(self, cheat_name):
-        # Notify the user that a cheat tool was detected
-        warning_window = ctk.CTkToplevel(self)
-        warning_window.title("Cheat Detected")
-        warning_label = ctk.CTkLabel(warning_window, text=f"Cheat Detected: {cheat_name}\nGame will close.")
-        warning_label.pack(pady=10, padx=10)
-        
-        # Exit game after warning
-        self.after(3000, self.destroy)
 
 if __name__ == "__main__":
     update_script()  # Check for updates before starting the game

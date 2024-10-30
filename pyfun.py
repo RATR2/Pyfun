@@ -119,24 +119,26 @@ class ClickerGame(ctk.CTk):
         self.score_label.configure(text=f"Score: {self._score}")
 
     def show_leaderboard(self):
-        # Fetch and display leaderboard from server
-        try:
-            response = requests.get(LEADERBOARD_ENDPOINT, timeout=5)
-            if response.status_code == 200:
-                leaderboard_data = response.json()
-                leaderboard_text = "\n".join(
-                    [f"{i+1}. {entry['name']}: {entry['score']}" for i, entry in enumerate(leaderboard_data)]
-                )
-            else:
-                leaderboard_text = "Failed to load leaderboard."
-        except Exception as e:
-            leaderboard_text = f"Error: {str(e)}"
+    # Fetch and display leaderboard from server
+    try:
+        response = requests.get(LEADERBOARD_ENDPOINT, timeout=5)
+        if response.status_code == 200:
+            leaderboard_data = response.json()
+            leaderboard_text = "\n".join(
+                [f"{i+1}. {entry['name']}: {entry['score']}" for i, entry in enumerate(leaderboard_data)]
+            )
+        else:
+            leaderboard_text = "Failed to load leaderboard."
+            print(f"Leaderboard fetch failed with status code: {response.status_code}")
+    except Exception as e:
+        leaderboard_text = f"Error: {str(e)}"
+        print(f"Exception occurred while fetching leaderboard: {e}")  # Print the error message
 
-        # Display leaderboard in new window
-        leaderboard_window = ctk.CTkToplevel(self)
-        leaderboard_window.title("Leaderboard")
-        leaderboard_label = ctk.CTkLabel(leaderboard_window, text=leaderboard_text)
-        leaderboard_label.pack(pady=10, padx=10)
+    # Display leaderboard in new window
+    leaderboard_window = ctk.CTkToplevel(self)
+    leaderboard_window.title("Leaderboard")
+    leaderboard_label = ctk.CTkLabel(leaderboard_window, text=leaderboard_text)
+    leaderboard_label.pack(pady=10, padx=10)
 
     def anti_cheat_monitor(self):
         # Background process that continuously checks for known cheat programs

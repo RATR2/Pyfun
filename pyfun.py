@@ -216,7 +216,7 @@ class ClickerGame(ctk.CTk):
             self.update_score_display()
 
             # Increment the upgrade cost for the next upgrade
-            self.upgrade_cost += 10
+            self.upgrade_cost += 5
 
             # Update the button text to reflect the new cost
             self.upgrade_button.configure(text=f"Upgrade (Cost: {self.upgrade_cost})")

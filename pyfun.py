@@ -132,7 +132,7 @@ class ClickerGame(ctk.CTk):
                 print("Score updated successfully on the server.")
             else:
                 print(f"Failed to update score: HTTP {response.status_code}")
-        except Exception as e:
+        except Exception as e:#git
             print(f"Error while sending score to the server: {e}")
 
         # Schedule the next score update

@@ -1,4 +1,4 @@
-SERVER_IP = "194.140.199.137"
+SERVER_IP = "ratr.nekohosting.gg"
 SERVER_PORT = 41674
 LEADERBOARD_ENDPOINT = f"https://{SERVER_IP}:{SERVER_PORT}/leaderboard"
 BANNED_WORDS = {

@@ -129,7 +129,6 @@ class ClickerGame(ctk.CTk):
         self.display_leaderboard_window(leaderboard_text)
 
     def fetch_leaderboard_data(self):
-        # Helper function to fetch data, separate to isolate `try` scope
         try:
             response = requests.get(LEADERBOARD_ENDPOINT, timeout=5)
             if response.status_code == 200:

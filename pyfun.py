@@ -7,6 +7,7 @@ import customtkinter as ctk
 import threading
 import psutil
 import time #github omg
+import signal
 import re
 from PVconfig import SERVER_IP, SERVER_PORT, LEADERBOARD_ENDPOINT, REPO_OWNER, REPO_NAME, FILE_PATH, BANNED_WORDS, KNOWN_CHEAT_PROCESSES
 
@@ -71,6 +72,10 @@ class ClickerGame(ctk.CTk):
 
         # Cost for upgrades
         self.upgrade_cost = 5
+
+        # Add signal handlers
+        signal.signal(signal.SIGINT, self.handle_exit)  # Handle Ctrl+C
+        signal.signal(signal.SIGTERM, self.handle_exit)  # Handle termination signals
 
         # UI elements
         self.score_label = ctk.CTkLabel(self, text="Score: 0", font=("Arial", 24))
@@ -227,6 +232,21 @@ class ClickerGame(ctk.CTk):
 
         else:
             print("Not enough score to upgrade or timer duration is maxed.")
+    def handle_exit(self, signum, frame):
+        """Handle application exit and remove user from server."""
+        self.remove_user_from_server()
+        self.quit()  # Exit the application gracefully
+
+    def remove_user_from_server(self):
+        """Send a request to the server to remove the user from the leaderboard."""
+        try:
+            response = requests.delete(f"{LEADERBOARD_ENDPOINT}/{self.username}", timeout=5, verify=False)
+            if response.status_code == 200:
+                print(f"User {self.username} removed from the server.")
+            else:
+                print(f"Failed to remove user {self.username}: HTTP {response.status_code}")
+        except Exception as e:
+            print(f"Error while removing user from the server: {e}")
 
 def ask_for_username():
     update_script()

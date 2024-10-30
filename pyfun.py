@@ -139,8 +139,25 @@ class ClickerGame(ctk.CTk):
         self.after(10000, self.send_score_to_server)  # Repeat every 10 seconds
 
     def show_leaderboard(self):
+        leaderboard_text = "Leaderboard data not available."
         leaderboard_text = self.fetch_leaderboard_data()
         self.display_leaderboard_window(leaderboard_text)
+
+    def fetch_leaderboard_data(self):
+        try:
+            response = requests.get(LEADERBOARD_ENDPOINT, timeout=5, verify=False)
+            if response.status_code == 200:
+                leaderboard_data = response.json()
+                return "\n".join(
+                    [f"{i+1}. {entry['username']}: {entry['score']}" for i, entry in enumerate(leaderboard_data)]
+                )
+            else:
+                print(f"Leaderboard fetch failed with status code: {response.status_code}")
+                return "Failed to load leaderboard."
+        except Exception as e:
+            print(f"Exception occurred while fetching leaderboard: {e}")  # Print the error message
+            return f"Error: {str(e)}"
+
 
     def fetch_leaderboard_data(self):
         try:

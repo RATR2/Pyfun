@@ -63,7 +63,8 @@ class ClickerGame(ctk.CTk):
         self.username = username
 
         # Initial score and encoded score
-        self._score = 0 #sometimes github is annoying
+        self._score = 0
+        self._encoded_score = self.encode_score(self._score)  # Initialize _encoded_score
 
         # Countdown timer
         self.timer_duration = 25  # Set the timer duration to 25 seconds
@@ -91,6 +92,10 @@ class ClickerGame(ctk.CTk):
         # Start the countdown
         self.start_countdown()
 
+    def encode_score(self, score):
+        # Example encoding function (you can customize it as needed)
+        return base64.b64encode(str(score).encode()).decode()
+
     def start_countdown(self):
         # Disables the click button and starts the countdown
         self.click_button.configure(state="disabled")
@@ -109,6 +114,7 @@ class ClickerGame(ctk.CTk):
 
     def increment_score(self):
         self._score += 1
+        self._encoded_score = self.encode_score(self._score)  # Update the encoded score
         self.update_score_display()
         self.start_countdown()
 
@@ -134,7 +140,6 @@ class ClickerGame(ctk.CTk):
         self.after(10000, self.send_score_to_server)  # Repeat every 10 seconds
 
     def show_leaderboard(self):
-        leaderboard_text = "Leaderboard data not available."
         leaderboard_text = self.fetch_leaderboard_data()
         self.display_leaderboard_window(leaderboard_text)
 
@@ -144,7 +149,7 @@ class ClickerGame(ctk.CTk):
             if response.status_code == 200:
                 leaderboard_data = response.json()
                 return "\n".join(
-                    [f"{i+1}. {entry['username']}: {entry['score']}" for i, entry in enumerate(leaderboard_data)]
+                    [f"{i + 1}. {entry['username']}: {entry['score']}" for i, entry in enumerate(leaderboard_data)]
                 )
             else:
                 print(f"Leaderboard fetch failed with status code: {response.status_code}")

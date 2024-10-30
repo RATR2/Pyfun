@@ -7,14 +7,9 @@ import customtkinter as ctk
 import threading
 import psutil
 import time
-from PVconfig import SERVER_IP, SERVER_PORT, LEADERBOARD_ENDPOINT
+from PVconfig import SERVER_IP, SERVER_PORT, LEADERBOARD_ENDPOINT, REPO_OWNER, REPO_NAME, FILE_PATH
 
-# GitHub repository information for the updater
-REPO_OWNER = "RATR2"
-REPO_NAME = "Pyfun"
-FILE_PATH = "pyfun.py"  # Path in the repo to the script file
 LOCAL_SCRIPT_PATH = os.path.abspath(__file__)
-# Anti-cheat configuration
 KNOWN_CHEAT_PROCESSES = ["Cheat Engine", "WeMod"]
 
 def get_remote_script_content():

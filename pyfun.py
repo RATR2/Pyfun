@@ -7,7 +7,7 @@ import customtkinter as ctk
 import threading
 import psutil
 import time
-from PVconfig import SERVER_IP, SERVER_PORT, LEADERBOARD_ENDPOINT, REPO_OWNER, REPO_NAME, FILE_PATH
+from PVconfig import SERVER_IP, LEADERBOARD_ENDPOINT, REPO_OWNER, REPO_NAME, FILE_PATH
 
 LOCAL_SCRIPT_PATH = os.path.abspath(__file__)
 KNOWN_CHEAT_PROCESSES = ["Cheat Engine", "WeMod"]
